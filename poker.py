@@ -321,6 +321,7 @@ class Poker:
                     await self.notify_state()
 
     async def handler(self, websocket, path):
+        print("New Message from" + str(websocket) + path)
         try:
             handshake = await websocket.recv()
             data = json.loads(handshake)
