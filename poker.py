@@ -422,9 +422,7 @@ class Poker:
             await self.unregister(websocket)
 
 loop = asyncio.get_event_loop()
-print("started loop")
 game = Poker(loop)
-print("created game")
 tasks = [
     game.clear_state(True),
     websockets.serve(game.handler, '0.0.0.0', 6789),
