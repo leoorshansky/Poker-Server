@@ -1,9 +1,9 @@
 from flask import Flask, g, request, make_response
-import sqlite3, datetime, json
+import sqlite3, datetime, json, os
 
 app = Flask(__name__)
 
-DATABASE = '/var/www/html/bruh/poker/poker.db'
+DATABASE = os.path.join(os.getcwd(), "poker.db")
 
 def response(o, status = 200, ctype = "text/plain"):
     resp = make_response(str(o), status)
@@ -55,7 +55,7 @@ def join(name):
         seat = int(request.args.get("seat"))
     except Exception:
         return response("invalidrequest")
-    with open("/var/www/html/bruh/poker/gamestatus.json", "r") as openfile:
+    with open(os.path.join(os.getcwd(), "gamestatus.json"), "r") as openfile:
         game_status = json.load(openfile)
     if name not in game_status["table"]["players_chips"].keys():
         if game_status["table"]["seats"][seat] == "":
@@ -63,7 +63,7 @@ def join(name):
         else:
             return response("seattaken")
         game_status["table"]["players_chips"][name] = chips
-        with open("/var/www/html/bruh/poker/gamestatus.json", "w") as openfile:
+        with open(os.path.join(os.getcwd(), "gamestatus.json"), "w") as openfile:
             json.dump(game_status, openfile, indent = 4)
         prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
         with get_db() as con:
@@ -73,13 +73,13 @@ def join(name):
 
 @app.route("/leave/<name>/")
 def leave(name):
-    with open("/var/www/html/bruh/poker/gamestatus.json", "r") as openfile:
+    with open(os.path.join(os.getcwd(), "gamestatus.json"), "r") as openfile:
         game_status = json.load(openfile)
     if name in game_status["table"]["players_chips"].keys():
         chips = game_status["table"]["players_chips"][name]
         del game_status["table"]["players_chips"][name]
         game_status["table"]["seats"].remove(name)
-        with open("/var/www/html/bruh/poker/gamestatus.json", "w") as openfile:
+        with open(os.path.join(os.getcwd(), "gamestatus.json"), "w") as openfile:
             json.dump(game_status, openfile, indent = 4)
         prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
         with get_db() as con:
