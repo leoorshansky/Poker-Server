@@ -1,0 +1,28 @@
+{
+    "table": {
+        "players_chips": {},
+        "seats": [],
+        "big_blind": 100
+    },
+    "hand": {
+        "positions": [],
+        "starting_positions": [],
+        "hole_cards": {},
+        "hands":{},
+        "community_cards": [],
+        "pot": 0
+    },
+    "round": {
+        "chips_out": {},
+        "street": "",
+        "last_action": {},
+        "last_bet_player": 0,
+        "first_to_act": 0,
+        "over": 0
+    },
+    "turn": {
+        "bet_size": 0,
+        "timer": 30,
+        "action_player": 0
+    }
+}
