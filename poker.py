@@ -373,7 +373,7 @@ class Poker(Namespace):
 
 
 loop = asyncio.get_event_loop()
-game = Poker("socket.io", loop)
+game = Poker(None, loop)
 socketio.on_namespace(game)
 tasks = [
 	game.clear_state(True),
