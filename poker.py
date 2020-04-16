@@ -10,8 +10,8 @@ from collections import namedtuple
 
 TOKEN_SECRET = b"80O1dGcfN63w6kDrllmP8bgH3m87HABdFYFAybV5t1diubzyuUF2pb92gEVphVD"
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_context.load_cert_chain("/etc/letsencrypt/live/studyingforwhap.ml/fullchain.pem", "/etc/letsencrypt/live/studyingforwhap.ml/privkey.pem")
+#ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+#ssl_context.load_cert_chain("/etc/letsencrypt/live/studyingforwhap.ml/fullchain.pem", "/etc/letsencrypt/live/studyingforwhap.ml/privkey.pem")
 
 def all_equal(lst):
     return len(set(lst)) == 1
@@ -423,7 +423,7 @@ game = Poker(loop)
 
 tasks = [
     game.clear_state(True),
-    websockets.serve(game.handler, '0.0.0.0', 6789, ssl=ssl_context),
+    websockets.serve(game.handler, '0.0.0.0', 6789),
     game.main()
 ]
 asyncio.ensure_future(asyncio.wait(tasks))
