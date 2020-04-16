@@ -371,6 +371,9 @@ class Poker(Namespace):
 		#     await self.notify_state()
 		#     await self.unregister(websocket)
 
+@app.route("/")
+def homepage():
+	return f.render_template("index.html")
 
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
