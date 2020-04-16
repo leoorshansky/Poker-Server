@@ -1,4 +1,4 @@
-requests==2.18.4
+requests==2.20.0
 Flask==1.1.2
 PyJWT==1.7.1
 websockets==8.1
