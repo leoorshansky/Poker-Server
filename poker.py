@@ -7,6 +7,10 @@ import jwt
 import requests
 import itertools
 from collections import namedtuple
+import logging
+logger = logging.getLogger('websockets')
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 TOKEN_SECRET = b"80O1dGcfN63w6kDrllmP8bgH3m87HABdFYFAybV5t1diubzyuUF2pb92gEVphVD"
 
