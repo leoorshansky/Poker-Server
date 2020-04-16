@@ -1,4 +1,4 @@
-requests==2.18.4
 Flask==1.1.2
+requests==2.18.4
+Flask_SocketIO==4.2.1
 PyJWT==1.7.1
-websockets==8.1
