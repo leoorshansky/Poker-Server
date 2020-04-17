@@ -219,6 +219,7 @@ class Poker(Namespace):
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
+		print("lmao")
 		hand_running = False
 		turn = ""
 		while True:
@@ -299,7 +300,8 @@ class Poker(Namespace):
 		data = json.loads(j)
 		action = data["action"]
 		username = f.session["username"]
-		print(username)
+		print("got json")
+		emit('message', {'status':'message received'})
 
 		# try:
 		#     async for message in websocket:
