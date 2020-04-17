@@ -219,7 +219,6 @@ class Poker(Namespace):
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
-		print("lmao")
 		hand_running = False
 		turn = ""
 		while True:
@@ -291,12 +290,10 @@ class Poker(Namespace):
 					hand_running = True
 					self.notify_state()
 
-	async def on_connect(self):
+	def on_connect(self):
 		send({"status": "connected"}, json=True)
 
-
-
-	async def on_json(self, j):
+	def on_json(self, j):
 		data = json.loads(j)
 		action = data["action"]
 		username = f.session["username"]
