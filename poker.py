@@ -6,6 +6,7 @@ import json
 import jwt
 import requests
 import itertools
+import datetime
 from collections import namedtuple
 import logging
 import flask as f
@@ -15,6 +16,8 @@ TOKEN_SECRET = b"80O1dGcfN63w6kDrllmP8bgH3m87HABdFYFAybV5t1diubzyuUF2pb92gEVphVD
 
 app = f.Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
+app.permanent_session_lifetime = datetime.timedelta(days = 1)
+f.session["permanent"] = True
 socketio = SocketIO(app)
 
 def all_equal(lst):
