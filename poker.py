@@ -292,7 +292,6 @@ class Poker(Namespace):
 
 	def on_connect(self):
 		send({"status": "connected"}, json=True)
-		f.session["username"] = "lol"
 
 	def on_json(self, j):
 		data = json.loads(j)
