@@ -377,7 +377,7 @@ class Poker(Namespace):
 @app.route("/")
 def homepage():
 	f.session["permanent"] = True
-	return f.render_template("index.html")
+	return f.render_template("homepage.html")
 
 async def run_app():
 	socketio.run(app, port=5000, debug=True)

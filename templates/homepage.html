@@ -3,10 +3,22 @@
     <head>
         <title>Pocekr</title>
         <link rel="stylesheet" href="https://unpkg.com/@coreui/coreui@2.1.16/dist/css/coreui.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/@coreui/icons@1.0.0/css/all.min.css">
+        <link rel="stylesheet" href="/poker/src/homepage/homepage.css">
     </head>
-    <body class="app header-fixed">
+    <body class="app header-fixed sidebar-shown">
         <header class="app-header navbar">
-            test header
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-8 col-sm-auto"><h1>Leo's Poker Club</h1></div>
+                    <div class="col-xs-4 col-sm-auto">
+                        <button class="btn btn-google">
+                            <span class="icons8-google btn-icon mr-2"></span>
+                            Sign in
+                        </button>
+                    </div>
+                </div>
+            </div>
         </header>
         <div class="app-body">
             <div class="sidebar">
@@ -17,7 +29,7 @@
             </main>
         </div>
         <footer class="app-footer">
-            Produced by Leo Orshansky
+            <h6>Produced by Leo Orshansky</h6>
         </footer>
 
         <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" crossorigin="anonymous"></script>
@@ -27,6 +39,6 @@
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" crossorigin="anonymous"></script>
         <script src="https://unpkg.com/@coreui/coreui@2.1.16/dist/js/coreui.min.js"></script>
         
-        <script src="/poker/src/homepage.js"></script>
+        <script src="/poker/src/homepage/homepage.js"></script>
     </body>
 </html>
