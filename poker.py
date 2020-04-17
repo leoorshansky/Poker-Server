@@ -298,7 +298,7 @@ class Poker(Namespace):
 		data = json.loads(j)
 		action = data["action"]
 		username = f.session.get("username")
-		emit('message', {'status':'message received'})
+		emit('message', {'status':username})
 
 		# try:
 		#     async for message in websocket:
