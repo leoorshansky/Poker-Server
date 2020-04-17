@@ -17,7 +17,6 @@ TOKEN_SECRET = b"80O1dGcfN63w6kDrllmP8bgH3m87HABdFYFAybV5t1diubzyuUF2pb92gEVphVD
 app = f.Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
 app.permanent_session_lifetime = datetime.timedelta(days = 1)
-f.session["permanent"] = True
 socketio = SocketIO(app)
 
 def all_equal(lst):
@@ -377,6 +376,7 @@ class Poker(Namespace):
 
 @app.route("/")
 def homepage():
+	f.session["permanent"] = True
 	return f.render_template("index.html")
 
 async def run_app():
