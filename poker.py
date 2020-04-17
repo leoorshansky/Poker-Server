@@ -293,10 +293,13 @@ class Poker(Namespace):
 	async def on_connect(self):
 		send({"status": "connected"}, json=True)
 
+
+
 	async def on_json(self, j):
 		data = json.loads(j)
 		action = data["action"]
 		username = f.session["username"]
+		print(username)
 
 		# try:
 		#     async for message in websocket:
