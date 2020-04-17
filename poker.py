@@ -380,12 +380,15 @@ class Poker(Namespace):
 def homepage():
 	return f.render_template("index.html")
 
+async def run_app():
+	socketio.run(app, port=5000, debug=True)
+
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
 socketio.on_namespace(game)
 tasks = [
 	game.clear_state(True),
-	socketio.run(app, port=5000, debug=True),
+	run_app(),
 	game.main()
 ]
 asyncio.ensure_future(asyncio.wait(tasks))
