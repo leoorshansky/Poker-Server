@@ -14,10 +14,7 @@ from flask_socketio import SocketIO, Namespace, send, emit
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_context.load_cert_chain("/etc/letsencrypt/live/le0.tech/fullchain.pem", "/etc/letsencrypt/live/le0.tech/privkey.pem")
-
-app = f.Flask(__name__, ssl_context=ssl_context)
+app = f.Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
 
 app.permanent_session_lifetime = datetime.timedelta(days = 3)
@@ -398,7 +395,7 @@ def login():
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
 		'client_secret.json',
 		['https://www.googleapis.com/auth/userinfo.email'])
-	flow.redirect_uri = f.url_for('token', _external=True)
+	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
 	f.session['state'] = state
 	return f.redirect(authorization_url, 303)
@@ -409,7 +406,7 @@ def token():
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
     	scopes=['https://www.googleapis.com/auth/userinfo.email'], state=state)
-	flow.redirect_uri = f.url_for('token', _external=True)
+	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
 	authorization_response = f.request.url
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
