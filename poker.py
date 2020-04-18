@@ -396,7 +396,7 @@ def login():
 		'client_secret.json',
 		['openid https://www.googleapis.com/auth/userinfo.email'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
-	authorization_url = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+	authorization_url, _ = flow.authorization_url(access_type='offline', include_granted_scopes='true')
 	return f.redirect(authorization_url, 303)
 
 @app.route("/token/")
