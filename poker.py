@@ -394,7 +394,7 @@ def login():
 	f.session["permanent"] = True
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
 		'client_secret.json',
-		['https://www.googleapis.com/auth/userinfo.email'])
+		['openid https://www.googleapis.com/auth/userinfo.email'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
 	return f.redirect(authorization_url, 303)
@@ -403,7 +403,7 @@ def login():
 def token():
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
-    	scopes=['https://www.googleapis.com/auth/userinfo.email'])
+    	scopes=['openid https://www.googleapis.com/auth/userinfo.email'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
 	authorization_response = "https://le0.tech/poker/token?" + f.request.url.split("?")[1]
 	flow.fetch_token(authorization_response=authorization_response)
