@@ -14,7 +14,10 @@ from flask_socketio import SocketIO, Namespace, send, emit
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 
-app = f.Flask(__name__)
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain("/etc/letsencrypt/live/le0.tech/fullchain.pem", "/etc/letsencrypt/live/le0.tech/privkey.pem")
+
+app = f.Flask(__name__, ssl_context=ssl_context)
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
 
 app.permanent_session_lifetime = datetime.timedelta(days = 3)
