@@ -398,16 +398,13 @@ def login():
 	f.session["permanent"] = True
 	flow.redirect_uri = "https://le0.tech/poker/token"
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
-	f.session["state"] = state
 	return f.redirect(authorization_url, 303)
 
 @app.route("/token/")
 def token():
-	state = f.session['state']
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
-    	scopes=['https://www.googleapis.com/auth/drive.metadata.readonly'],
-    	state=state)
+    	scopes=['https://www.googleapis.com/auth/drive.metadata.readonly'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
 	authorization_response = f.request.url
 	flow.fetch_token(authorization_response=authorization_response)
