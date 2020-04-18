@@ -406,7 +406,7 @@ def token():
     	'client_secret.json',
     	scopes=['https://www.googleapis.com/auth/drive.metadata.readonly'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
-	authorization_response = f.request.url
+	authorization_response = "https://le0.tech/poker/token" + f.request.url.split("?")[1]
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
 	f.session['credentials'] = {'email': jwt.decode(token, verify=False)["email"]}
