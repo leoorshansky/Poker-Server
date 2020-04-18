@@ -407,7 +407,7 @@ def token():
     	'client_secret.json',
     	scopes=['https://www.googleapis.com/auth/userinfo.email'], state=state)
 	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
-	authorization_response = f.request.url
+	authorization_response = f.request.url.replace("http", "https")
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
 	f.session['email'] = jwt.decode(token, verify=False)["email"]
