@@ -403,7 +403,7 @@ def login():
 def token():
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
-    	scopes=['https://www.googleapis.com/auth/userinfo.email openid'])
+    	scopes=['openid https://www.googleapis.com/auth/userinfo.email'])
 	flow.redirect_uri = "https://le0.tech/poker/token"
 	authorization_response = "https://le0.tech/poker/token?" + f.request.url.split("?")[1]
 	flow.fetch_token(authorization_response=authorization_response)
