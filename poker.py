@@ -11,12 +11,17 @@ from collections import namedtuple
 import logging
 import flask as f
 from flask_socketio import SocketIO, Namespace, send, emit
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
 
-TOKEN_SECRET = b"80O1dGcfN63w6kDrllmP8bgH3m87HABdFYFAybV5t1diubzyuUF2pb92gEVphVD"
+flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+    'client_secret.json',
+    ['https://www.googleapis.com/auth/userinfo.email'])
 
 app = f.Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
-app.permanent_session_lifetime = datetime.timedelta(days = 1)
+
+app.permanent_session_lifetime = datetime.timedelta(days = 3)
 socketio = SocketIO(app)
 
 def all_equal(lst):
@@ -377,7 +382,38 @@ class Poker(Namespace):
 @app.route("/")
 def homepage():
 	f.session["permanent"] = True
+	if f.session.get("email"):
+		return f.redirect(f.url_for("lobby"))
 	return f.render_template("homepage.html")
+
+@app.route("/lobby")
+def lobby():
+	f.session["permanent"] = True
+	if not f.session.get("email"):
+		return f.redirect(f.url_for("/"))
+	return f.render_template("homepage.html")
+
+@app.route("/login")
+def login():
+	f.session["permanent"] = True
+	flow.redirect_uri = f.url_for('token', _external=True)
+	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+	f.session["state"] = state
+	return f.redirect(authorization_url, 303)
+
+@app.route("/token/")
+def token():
+	state = f.session['state']
+	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+    	'client_secret.json',
+    	scopes=['https://www.googleapis.com/auth/drive.metadata.readonly'],
+    	state=state)
+	flow.redirect_uri = f.url_for('token', _external=True)
+	authorization_response = f.request.url
+	flow.fetch_token(authorization_response=authorization_response)
+	token = flow.credentials.id_token
+	f.session['credentials'] = {'email': jwt.decode(token, verify=False)["email"]}
+	return f.redirect(f.url_for('homepage'))
 
 async def run_app():
 	socketio.run(app, port=5000, debug=True)
