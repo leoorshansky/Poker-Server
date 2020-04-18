@@ -379,14 +379,14 @@ class Poker(Namespace):
 def homepage():
 	f.session["permanent"] = True
 	if f.session.get("email"):
-		return f.redirect("https://le0.tech/poker/lobby")
+		return f.redirect(f.url_for("lobby"))
 	return f.render_template("homepage.html")
 
 @app.route("/lobby")
 def lobby():
 	f.session["permanent"] = True
 	if not f.session.get("email"):
-		return f.redirect("https://le0.tech/poker")
+		return f.redirect(f.url_for("/"))
 	return f.render_template("homepage.html")
 
 @app.route("/login")
@@ -394,22 +394,24 @@ def login():
 	f.session["permanent"] = True
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
 		'client_secret.json',
-		['https://www.googleapis.com/auth/userinfo.email openid'])
-	flow.redirect_uri = "https://le0.tech/poker/token"
-	authorization_url, _ = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+		['https://www.googleapis.com/auth/userinfo.email'])
+	flow.redirect_uri = f.url_for('token', _external=True)
+	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+	f.session['state'] = state
 	return f.redirect(authorization_url, 303)
 
 @app.route("/token/")
 def token():
+	state = f.session['state']
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
-    	scopes=['openid https://www.googleapis.com/auth/userinfo.email'])
-	flow.redirect_uri = "https://le0.tech/poker/token"
-	authorization_response = "https://le0.tech/poker/token?" + f.request.url.split("?")[1]
+    	scopes=['https://www.googleapis.com/auth/userinfo.email'], state=state)
+	flow.redirect_uri = f.url_for('token', _external=True)
+	authorization_response = f.request.url
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
-	f.session['credentials'] = {'email': jwt.decode(token, verify=False)["email"]}
-	return f.redirect("https://le0.tech/poker")
+	f.session['email'] = jwt.decode(token, verify=False)["email"]
+	return f.redirect(f.url_for('lobby'))
 
 async def run_app():
 	socketio.run(app, port=5000, debug=True)
