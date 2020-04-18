@@ -299,7 +299,7 @@ class Poker(Namespace):
 	def on_json(self, j):
 		data = json.loads(j)
 		action = data["action"]
-		username = f.session.get("username")
+		username = f.session.get("email")
 		emit('message', {'status':username})
 
 		# try:
