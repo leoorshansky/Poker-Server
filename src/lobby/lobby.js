@@ -1,5 +1,5 @@
 $(document).ready(() => {
-    $("#logout").addEventListener("click", logout);
+    $("#logout").on("click", logout);
 });
 
 const logout = () => window.fetch("/poker/logout");
