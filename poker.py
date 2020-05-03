@@ -379,14 +379,14 @@ class Poker(Namespace):
 def homepage():
 	f.session["permanent"] = True
 	if f.session.get("email"):
-		return f.redirect(f.url_for("lobby"), 303)
+		return f.redirect(f.url_for("lobby", _external=True, _scheme="https"), 303)
 	return f.render_template("homepage.html")
 
 @app.route("/poker/lobby/")
 def lobby():
 	f.session["permanent"] = True
 	if not f.session.get("email"):
-		return f.redirect(f.url_for("homepage"), 303)
+		return f.redirect(f.url_for("homepage", _external=True, _scheme="https"), 303)
 	return f.render_template("lobby.html")
 
 @app.route("/poker/login")
@@ -418,7 +418,7 @@ def token():
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
 	f.session['email'] = jwt.decode(token, verify=False)["email"]
-	return f.redirect(f.url_for('lobby'), 303)
+	return f.redirect(f.url_for('lobby', _external=True, _scheme="https"), 303)
 
 async def run_app():
 	socketio.run(app, port=5000, debug=True)
