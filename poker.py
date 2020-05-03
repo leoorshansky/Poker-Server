@@ -387,14 +387,14 @@ def lobby():
 	f.session["permanent"] = True
 	if not f.session.get("email"):
 		return f.redirect(f.url_for("homepage"))
-	return f.render_template("homepage.html")
+	return f.render_template("lobby.html")
 
 @app.route("/poker/login")
 def login():
 	f.session["permanent"] = True
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
 		'client_secret.json',
-		['openid', 'https://www.googleapis.com/auth/userinfo.email'])
+		['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'])
 	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
 	f.session['state'] = state
@@ -405,7 +405,7 @@ def token():
 	state = f.session['state']
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
-    	scopes=['openid','https://www.googleapis.com/auth/userinfo.email'], state=state)
+    	scopes=['openid','https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'], state=state)
 	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
 	authorization_response = f.request.url.replace("http", "https")
 	flow.fetch_token(authorization_response=authorization_response)
