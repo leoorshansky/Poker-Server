@@ -404,7 +404,7 @@ def login():
 def logout():
 	f.session["permanent"] = True
 	del f.session["email"]
-	return f.redirect('homepage')
+	return f.redirect(f.url_for('homepage', _external=True, _scheme="https"))
 
 @app.route("/poker/token")
 def token():
