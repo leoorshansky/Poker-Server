@@ -375,14 +375,14 @@ class Poker(Namespace):
 		#     await self.notify_state()
 		#     await self.unregister(websocket)
 
-@app.route("/poker")
+@app.route("/poker/")
 def homepage():
 	f.session["permanent"] = True
 	if f.session.get("email"):
 		return f.redirect(f.url_for("lobby"))
 	return f.render_template("homepage.html")
 
-@app.route("/poker/lobby")
+@app.route("/poker/lobby/")
 def lobby():
 	f.session["permanent"] = True
 	if not f.session.get("email"):
