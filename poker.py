@@ -400,6 +400,11 @@ def login():
 	f.session['state'] = state
 	return f.redirect(authorization_url, 303)
 
+@app.route("/poker/logout")
+def logout():
+	f.session["permanent"] = True
+	del f.session["email"]
+
 @app.route("/poker/token")
 def token():
 	state = f.session['state']
