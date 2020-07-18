@@ -13,8 +13,10 @@ import flask as f
 from flask_socketio import SocketIO, Namespace, send, emit
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
+from apache import ReverseProxied
 
 app = f.Flask(__name__)
+app.wsgi_app = ReverseProxied(app.wsgi_app, script_name='/poker')
 app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
 
 app.permanent_session_lifetime = datetime.timedelta(days = 3)
