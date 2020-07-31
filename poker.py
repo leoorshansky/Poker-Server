@@ -423,6 +423,7 @@ def token():
 	return f.redirect(f.url_for('lobby', _external=True, _scheme="https"), 303)
 
 async def run_app():
+	print("RUNNING MF APP")
 	socketio.run(app, port=5000, debug=True)
 
 loop = asyncio.get_event_loop()
