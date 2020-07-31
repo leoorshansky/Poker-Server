@@ -418,7 +418,9 @@ def token():
 	authorization_response = f.request.url.replace("http", "https")
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
-	f.session['email'] = jwt.decode(token, verify=False)["email"]
+	decoded = jwt.decode(token, verify=False)
+	print(decoded)
+	f.session['email'] = decoded["email"]
 	return f.redirect(f.url_for('lobby', _external=True, _scheme="https"), 303)
 
 async def run_app():
