@@ -4,3 +4,4 @@ Flask==1.1.2
 google_auth_oauthlib==0.4.1
 protobuf==3.11.3
 PyJWT==1.7.1
+eventlet==0.26.1
