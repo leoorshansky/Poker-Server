@@ -300,7 +300,7 @@ class Poker(Namespace):
 
 	def on_json(self, j):
 		print(j)
-		data = json.loads(j)
+		data = j
 		action = data["action"]
 		username = f.session.get("email")
 		emit('message', {'status':username})
