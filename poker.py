@@ -388,7 +388,7 @@ def lobby():
 	f.session["permanent"] = True
 	if not f.session.get("email"):
 		return f.redirect(f.url_for("homepage", _external=True, _scheme="https"), 303)
-	return f.render_template("lobby.html")
+	return f.render_template("lobby.html", avatar=f.session["avatar"])
 
 @app.route("/poker/login")
 def login():
@@ -419,8 +419,8 @@ def token():
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
 	decoded = jwt.decode(token, verify=False)
-	print(decoded)
 	f.session['email'] = decoded["email"]
+	f.session['avatar'] = decoded["picture"]
 	return f.redirect(f.url_for('lobby', _external=True, _scheme="https"), 303)
 
 async def run_app():
