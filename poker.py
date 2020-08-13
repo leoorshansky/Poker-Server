@@ -327,11 +327,12 @@ class Poker(Namespace):
 			self.state["table"]["players_chips"][username] = amount
 			self.state["table"]["seats"][seat] = username
 			self.queue.put(("join", username))
+			self.notify_state("test")
 		if action == "leave":
 			if not self.state["table"]["players_chips"].get(username):
 				send({"error": "not at table"})
 				return
-			if database.leave(username, amount) != "success":
+			if database.leave(username) != "success":
 				send({"error": "something went wrong"})
 				return
 			del self.state["table"]["players_chips"][username]
