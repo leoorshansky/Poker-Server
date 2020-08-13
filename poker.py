@@ -334,7 +334,8 @@ class Poker(Namespace):
 			if not self.state["table"]["players_chips"].get(username):
 				send({"error": "not at table"})
 				return
-			if database.leave(username) != "success":
+			chips = self.state["table"]["players_chips"][username]
+			if database.leave(username, chips) != "success":
 				send({"error": "something went wrong"})
 				return
 			del self.state["table"]["players_chips"][username]
@@ -345,7 +346,7 @@ class Poker(Namespace):
 	def on_disconnect(self):
 		username = f.session.get("email")
 		self.users.remove(username)
-		
+
 		# try:
 			# data = json.loads(message)
 			# action = data["action"]
