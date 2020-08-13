@@ -99,7 +99,6 @@ class Poker(Namespace):
 		self.clear_state(True)
 
 	def notify_state(self, msg = "", reveal = False):
-		print(self.users)
 		for username in self.users:
 			state = self.state
 			state["message"] = msg
@@ -329,6 +328,7 @@ class Poker(Namespace):
 			self.state["table"]["players_chips"][username] = amount
 			self.state["table"]["seats"][seat] = username
 			self.queue.put(("join", username))
+			send({"success": True})
 			self.notify_state("test")
 		if action == "leave":
 			if not self.state["table"]["players_chips"].get(username):
@@ -339,16 +339,13 @@ class Poker(Namespace):
 				return
 			del self.state["table"]["players_chips"][username]
 			del self.state["table"]["seats"][seat]
+			send({"success": True})
+			self.notify_state("test")
 	
 	def on_disconnect(self):
 		username = f.session.get("email")
 		self.users.remove(username)
-		if self.state["table"]["players_chips"].get(username):
-			if database.leave(username, amount) != "success":
-				send({"error": "something went wrong"})
-				return
-			del self.state["table"]["players_chips"][username]
-			del self.state["table"]["seats"][seat]
+		
 		# try:
 			# data = json.loads(message)
 			# action = data["action"]
