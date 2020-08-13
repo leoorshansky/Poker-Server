@@ -10,10 +10,11 @@ import datetime
 from collections import namedtuple
 import logging
 import flask as f
-from flask_socketio import SocketIO, Namespace, send, emit
+from flask_socketio import SocketIO, Namespace, send, emit, join_room, leave_room
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from apache import ReverseProxied
+import database
 
 app = f.Flask(__name__)
 app.wsgi_app = ReverseProxied(app.wsgi_app)
@@ -69,8 +70,6 @@ def evaluate_hand(cards):
 			('Straight flush', [max(ranks), *([0] * 4)]) if max(ranks) < 14 else
 			('Royal flush', [14, *([0] * 4)])
 		)
-	# wheel = [int(s) for s in " ".join([str(i) for i in ranks]).replace("14", "1").split(" ")]
-	# lmao
 	wheel = [x if x != 14 else 1 for x in ranks]
 	if is_consecutive(wheel):
 		return (
@@ -93,20 +92,19 @@ class Poker(Namespace):
 	def __init__(self, path, loop):
 		super().__init__(path)
 		self.queue = asyncio.Queue(1)
-		self.USERS = {}
+		self.users = []
 		self.cards = []
 		self.loop = loop
 		self.turn_time = 20
-		self.state = {}
+		self.clear_state(True)
 
-	async def notify_state(self):
-		emit('state', self.state)
-
-	async def state_event(self, username, reveal = False):
-		if not reveal:
-			self.state["hand"]["hole_cards"] = {username: self.state["hand"]["hole_cards"].get(username, "")}
-			self.state["hand"]["hands"] = {username: self.state["hand"]["hands"].get(username, "")}
-		return json.dumps(self.state)
+	def notify_state(self, reveal = False):
+		for username in self.users:
+			state = self.state
+			if not reveal:
+				state["hand"]["hole_cards"] = {username: self.state["hand"]["hole_cards"].get(username, "")}
+				state["hand"]["hands"] = {username: self.state["hand"]["hands"].get(username, "")}
+			emit('state', state, room=username)
 
 	async def timer (self, future, time, interval = 5):
 		time_left = time
@@ -121,24 +119,29 @@ class Poker(Namespace):
 		if not future.done():
 			future.set_result("timeout")
 
-	async def clear_state(self, total = False):
+	def clear_state(self, total = False):
+		state = {}
 		if total:
-			self.state["table"]["players_chips"] = {}
-			self.state["table"]["seats"] = [""] * 9
-		self.state["hand"]["positions"] = []
-		self.state["hand"]["hole_cards"] = {}
-		self.state["hand"]["pot"] = 0
-		self.state["hand"]["community_cards"] = []
-		self.state["round"]["chips_out"] = {}
-		self.state["round"]["street"] = ""
-		self.state["round"]["last_action"] = {}
-		self.state["round"]["last_bet_player"] = 0
-		self.state["round"]["first_to_act"] = 0
-		self.state["round"]["over"] = 0
-		self.state["turn"]["timer"] = self.turn_time
-		self.state["turn"]["action_player"] = 0
-		self.state["turn"]["bet_size"] = 0
-		self.notify_state()
+			state["table"] = {}
+			state["table"]["players_chips"] = {}
+			state["table"]["seats"] = [""] * 9
+		state["hand"] = {}
+		state["hand"]["positions"] = []
+		state["hand"]["hole_cards"] = {}
+		state["hand"]["pot"] = 0
+		state["hand"]["community_cards"] = []
+		state["round"] = {}
+		state["round"]["chips_out"] = {}
+		state["round"]["street"] = ""
+		state["round"]["last_action"] = {}
+		state["round"]["last_bet_player"] = 0
+		state["round"]["first_to_act"] = 0
+		state["round"]["over"] = 0
+		state["turn"] = {}
+		state["turn"]["timer"] = self.turn_time
+		state["turn"]["action_player"] = 0
+		state["turn"]["bet_size"] = 0
+		self.state = state
 
 	async def wait_for_turn (self, future, username):
 		while not future.done():
@@ -219,17 +222,27 @@ class Poker(Namespace):
 			self.state["hand"]["hands"][player] = hand
  
 	async def find_winner(self):
-		winner = max([(player, self.state["hand"]["hands"][player]) for player in self.state["hand"]["positions"]], key = lambda x: encode_hand(x[1]))[0]
-		self.state["table"]["players_chips"][winner] += self.state["hand"]["pot"]
+		final_hands = [(player, encode_hand(self.state["hand"]["hands"][player])) for player in self.state["hand"]["positions"]]
+		winning_hand = max(final_hands, key = lambda x: x[1])
+		if [hand[1] for hand in final_hands].count(winning_hand[1]) > 0: #IF THERE IS A TIE
+			tied = []
+			for hand in final_hands:
+				if hand[1] == winning_hand[1]:
+					tied.append(hand[0])
+			chips_each = self.state["hand"]["pot"] // len(tied)
+			for user in tied:
+				self.state["table"]["players_chips"][user] += chips_each
+			self.state["hand"]["pot"] = 0
+			return
+		self.state["table"]["players_chips"][winning_hand[0]] += self.state["hand"]["pot"]
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
 		hand_running = False
-		turn = ""
 		while True:
-			await self.queue.get()
+			action, user = await self.queue.get()
 			positions = self.state["hand"]["positions"]
-			if hand_running:
+			if hand_running and action in ["check", "call", "raise", "fold", "timeout", "loop_event"]:
 				action_player = self.state["turn"]["action_player"]
 				if self.state["round"]["over"]:
 					street = self.state["round"]["street"]
@@ -243,9 +256,8 @@ class Poker(Namespace):
 					self.state["round"]["over"] = 0
 					self.state["turn"]["bet_size"] = 0
 					self.state["turn"]["action_player"] = 0
+					action_player = 0
 					self.state["turn"]["timer"] = self.turn_time
-					turn = ""
-					positions = self.state["hand"]["positions"]
 					if len(positions) == 1:
 						self.state["table"]["players_chips"][positions[0]] += self.state["hand"]["pot"]
 						self.state["hand"]["pot"] = 0
@@ -268,107 +280,122 @@ class Poker(Namespace):
 					elif street == "river":
 						hand_running = False
 						await self.find_winner()
-
-					self.notify_state()
-				else:
-					action_player_name = self.state["hand"]["positions"][action_player]
-					if action_player_name != turn:
-						turn = action_player_name
-						result = await self.turn_timer(self.turn_time, turn)
-						action_player = self.state["turn"]["action_player"]
-						positions = self.state["hand"]["positions"]
-						if result == "timeout":
-							reveal = False
-							if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
-								self.state["round"]["over"] = 1
-							else:
-								self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
-							self.state["round"]["last_action"][turn] = "fold"
-							del self.state["hand"]["positions"][action_player]
-						self.state["turn"]["timer"] = self.turn_time
-						self.notify_state()
-					else:
+						self.notify_state(True)
+						self.queue.put(("loop_event", None))
 						continue
-			else:
+					self.notify_state()
+				action_player_name = positions[action_player]
+				result = await self.turn_timer(self.turn_time, action_player_name)
+				if result == "timeout":
+					if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
+						self.state["round"]["over"] = 1
+					else:
+						self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+					self.state["round"]["last_action"][action_player_name] = "fold"
+					del self.state["hand"]["positions"][action_player]
+				self.state["turn"]["timer"] = self.turn_time
+				self.notify_state()
+			elif action == "join":
 				if len(self.state["table"]["players_chips"]) > 1:
 					self.state = await self.new_hand(self.state)
 					hand_running = True
 					self.notify_state()
+					self.queue.put(("loop_event", None))
 
 	def on_connect(self):
+		username = f.session.get("email")
+		join_room(username)
+		self.users.append(username)
 		send({"status": "connected"}, json=True)
 
 	def on_json(self, data):
 		action = data["action"]
 		username = f.session.get("email")
-		emit('message', {'status':username})
+		if action == "join":
+			amount = int(data["amount"])
+			if self.state["table"]["players_chips"].get(username):
+				send({"error": "already joined"})
+				return
+			if database.join(username, amount) != "success":
+				send({"error": "something went wrong"})
+				return
+			seat = int(data["seat"])
+			if self.state["table"]["seats"][seat] != "":
+				send({"error": "seat taken"})
+				return
+			self.state["table"]["players_chips"][username] = amount
+			self.state["table"]["seats"][seat] = username
+			self.queue.put(("join", username))
+	
+	def on_disconnect(self):
+		username = f.session.get("email")
+		self.users.remove(username)
 
 		# try:
-		#     async for message in websocket:
-		#         data = json.loads(message)
-		#         action = data["action"]
-		#         state = await self.get_state()
-		#         positions = state["hand"]["positions"]
-		#         action_player = state["turn"]["action_player"]
-		#         action_player_name = positions[action_player]
-		#         bet_size = state["turn"]["bet_size"]
-		#         chips_out = state["round"]["chips_out"][action_player_name]
-		#         if action_player_name == username:
-		#             if action["name"] == "check":
-		#                 if bet_size == chips_out:
-		#                     reveal = False
-		#                     if state["round"]["first_to_act"] == (action_player + 1) % len(positions):
-		#                         state["round"]["over"] = 1
-		#                         if state["round"]["street"] == "river":
-		#                             reveal = True
-		#                     else:
-		#                         state["turn"]["action_player"] = (action_player + 1) % len(positions)
-		#                     state["round"]["last_action"][username] = "check"
-		#                     await self.set_state(state)
-		#                     await self.notify_state(reveal)
-		#                 else:
-		#                     await websocket.send("cannotcheck")
-		#             elif action["name"] == "call":
-		#                 if bet_size != 0:
-		#                     reveal = False
-		#                     if state["round"]["last_bet_player"] == (action_player + 1) % len(positions):
-		#                         state["round"]["over"] = 1
-		#                         if state["round"]["street"] == "river":
-		#                             reveal = True
-		#                     else:
-		#                         state["turn"]["action_player"] = (action_player + 1) % len(positions)
-		#                     state["round"]["last_action"][username] = "call"
-		#                     chip_difference = bet_size - state["round"]["chips_out"][username]
-		#                     state["round"]["chips_out"][username] = bet_size
-		#                     state["table"]["players_chips"][username] -= chip_difference
-		#                     await self.set_state(state)
-		#                     await self.notify_state(reveal)
-		#             elif action["name"] == "bet":
-		#                 bet = action["chips"] + bet_size
-		#                 if bet_size < bet:
-		#                     state["turn"]["bet_size"] = bet
-		#                     state["round"]["chips_out"][username] = bet
-		#                     state["table"]["players_chips"][username] -= action["chips"]
-		#                     state["round"]["last_action"][username] = f"bet {action['chips']}"
-		#                     state["round"]["last_bet_player"] = action_player
-		#                     state["turn"]["action_player"] = (action_player + 1) % len(positions)
-		#                     await self.set_state(state)
-		#                     await self.notify_state()
-		#                 else:
-		#                     await websocket.send("cannotbet")
-		#             elif action["name"] == "fold":
-		#                 reveal = False
-		#                 if state["turn"]["last_bet_player"] == (action_player + 1) % len(positions):
-		#                     state["round"]["over"] = 1
-		#                 else:
-		#                     state["turn"]["action_player"] = (action_player + 1) % len(positions)
-		#                 state["turn"]["action_player"] -= 1
-		#                 state["round"]["last_action"][username] = "fold"
-		#                 del state["hand"]["positions"][action_player]
-		#                 await self.set_state(state)
-		#                 await self.notify_state(reveal)
-		#             else:
-		#                 continue
+			# data = json.loads(message)
+			# action = data["action"]
+			# state = await self.get_state()
+			# positions = state["hand"]["positions"]
+			# action_player = state["turn"]["action_player"]
+			# action_player_name = positions[action_player]
+			# bet_size = state["turn"]["bet_size"]
+			# chips_out = state["round"]["chips_out"][action_player_name]
+			# if action_player_name == username:
+			# 	if action["name"] == "check":
+			# 		if bet_size == chips_out:
+			# 			reveal = False
+			# 			if state["round"]["first_to_act"] == (action_player + 1) % len(positions):
+			# 				state["round"]["over"] = 1
+			# 				if state["round"]["street"] == "river":
+			# 					reveal = True
+			# 			else:
+			# 				state["turn"]["action_player"] = (action_player + 1) % len(positions)
+			# 			state["round"]["last_action"][username] = "check"
+			# 			await self.set_state(state)
+			# 			await self.notify_state(reveal)
+			# 		else:
+			# 			await websocket.send("cannotcheck")
+			# 	elif action["name"] == "call":
+			# 		if bet_size != 0:
+			# 			reveal = False
+			# 			if state["round"]["last_bet_player"] == (action_player + 1) % len(positions):
+			# 				state["round"]["over"] = 1
+			# 				if state["round"]["street"] == "river":
+			# 					reveal = True
+			# 			else:
+			# 				state["turn"]["action_player"] = (action_player + 1) % len(positions)
+			# 			state["round"]["last_action"][username] = "call"
+			# 			chip_difference = bet_size - state["round"]["chips_out"][username]
+			# 			state["round"]["chips_out"][username] = bet_size
+			# 			state["table"]["players_chips"][username] -= chip_difference
+			# 			await self.set_state(state)
+			# 			await self.notify_state(reveal)
+			# 	elif action["name"] == "bet":
+			# 		bet = action["chips"] + bet_size
+			# 		if bet_size < bet:
+			# 			state["turn"]["bet_size"] = bet
+			# 			state["round"]["chips_out"][username] = bet
+			# 			state["table"]["players_chips"][username] -= action["chips"]
+			# 			state["round"]["last_action"][username] = f"bet {action['chips']}"
+			# 			state["round"]["last_bet_player"] = action_player
+			# 			state["turn"]["action_player"] = (action_player + 1) % len(positions)
+			# 			await self.set_state(state)
+			# 			await self.notify_state()
+			# 		else:
+			# 			await websocket.send("cannotbet")
+			# 	elif action["name"] == "fold":
+			# 		reveal = False
+			# 		if state["turn"]["last_bet_player"] == (action_player + 1) % len(positions):
+			# 			state["round"]["over"] = 1
+			# 		else:
+			# 			state["turn"]["action_player"] = (action_player + 1) % len(positions)
+			# 		state["turn"]["action_player"] -= 1
+			# 		state["round"]["last_action"][username] = "fold"
+			# 		del state["hand"]["positions"][action_player]
+			# 		await self.set_state(state)
+			# 		await self.notify_state(reveal)
+			# 	else:
+			# 		continue
 		# except Exception as e:
 		#     print(e)
 		# finally:
@@ -430,7 +457,6 @@ loop = asyncio.get_event_loop()
 game = Poker(None, loop)
 socketio.on_namespace(game)
 tasks = [
-	game.clear_state(True),
 	run_app(),
 	game.main()
 ]

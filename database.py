@@ -37,37 +37,20 @@ def replenish(name, qty):
         con.execute("UPDATE chips SET qty = ?, last_replenished = ? WHERE username = ?", (qty, date, name))
     return "success"
 
-def join(name, chips, seat):
-    with open(os.path.join(os.getcwd(), "gamestatus.json"), "r") as openfile:
-        game_status = json.load(openfile)
-    if name not in game_status["table"]["players_chips"].keys():
-        if game_status["table"]["seats"][seat] == "":
-            game_status["table"]["seats"][seat] = name
-        else:
-            return "seattaken"
-        game_status["table"]["players_chips"][name] = chips
-        with open(os.path.join(os.getcwd(), "gamestatus.json"), "w") as openfile:
-            json.dump(game_status, openfile, indent = 4)
-        prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
-        with get_db() as con:
-            con.execute("UPDATE chips SET qty = ? WHERE username = ?", (prev_chips - chips, name))
-        return "success"
-    return "alreadyjoined"
+def join(name, chips):
+    prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
+    if prev_chips < chips:
+        print(f"NOT ENOUGH CHIPS for user {name}")
+        return "broke"
+    with get_db() as con:
+        con.execute("UPDATE chips SET qty = ? WHERE username = ?", (prev_chips - chips, name))
+    return "success"
 
-def leave(name):
-    with open(os.path.join(os.getcwd(), "gamestatus.json"), "r") as openfile:
-        game_status = json.load(openfile)
-    if name in game_status["table"]["players_chips"].keys():
-        chips = game_status["table"]["players_chips"][name]
-        del game_status["table"]["players_chips"][name]
-        game_status["table"]["seats"].remove(name)
-        with open(os.path.join(os.getcwd(), "gamestatus.json"), "w") as openfile:
-            json.dump(game_status, openfile, indent = 4)
-        prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
-        with get_db() as con:
-            con.execute("UPDATE chips SET qty = ? WHERE username = ?", (chips + prev_chips, name))
-        return "success"
-    return "notingame"
+def leave(name, chips):
+    prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
+    with get_db() as con:
+        con.execute("UPDATE chips SET qty = ? WHERE username = ?", (chips + prev_chips, name))
+    return "success"
 
 def close_connection(exception):
     db = getattr(g, '_database', None)
