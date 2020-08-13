@@ -98,9 +98,10 @@ class Poker(Namespace):
 		self.turn_time = 20
 		self.clear_state(True)
 
-	def notify_state(self, reveal = False):
+	def notify_state(self, msg = "", reveal = False):
 		for username in self.users:
 			state = self.state
+			state["message"] = msg
 			if not reveal:
 				state["hand"]["hole_cards"] = {username: self.state["hand"]["hole_cards"].get(username, "")}
 				state["hand"]["hands"] = {username: self.state["hand"]["hands"].get(username, "")}
@@ -326,11 +327,25 @@ class Poker(Namespace):
 			self.state["table"]["players_chips"][username] = amount
 			self.state["table"]["seats"][seat] = username
 			self.queue.put(("join", username))
+		if action == "leave":
+			if not self.state["table"]["players_chips"].get(username):
+				send({"error": "not at table"})
+				return
+			if database.leave(username, amount) != "success":
+				send({"error": "something went wrong"})
+				return
+			del self.state["table"]["players_chips"][username]
+			del self.state["table"]["seats"][seat]
 	
 	def on_disconnect(self):
 		username = f.session.get("email")
 		self.users.remove(username)
-
+		if self.state["table"]["players_chips"].get(username):
+			if database.leave(username, amount) != "success":
+				send({"error": "something went wrong"})
+				return
+			del self.state["table"]["players_chips"][username]
+			del self.state["table"]["seats"][seat]
 		# try:
 			# data = json.loads(message)
 			# action = data["action"]
