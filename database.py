@@ -16,6 +16,13 @@ def query_db(query, args=(), one=False):
     cur.close()
     return (rv[0] if rv else None) if one else rv
 
+def modify_db(cmd):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(cmd)
+    conn.commit()
+    conn.close()
+
 def get_chips(name):
     row = query_db("SELECT * from chips WHERE username = ?", (name,), True)
     if not row:
@@ -38,7 +45,11 @@ def replenish(name, qty):
     return "success"
 
 def join(name, chips):
-    prev_chips = int(query_db("SELECT * from chips WHERE username = ?", (name,), True)["qty"])
+    prev_chips = query_db("SELECT * from chips WHERE username = ?", (name,), True).get("qty")
+    if prev_chips is None:
+        modify_db(f"INSERT INTO chips VALUES ('{name}', 10000, '{datetime.datetime.utcnow().strftime("%d %B %Y %X")}');")
+        prev_chips = 10000
+    prev_chips = int(prev_chips)
     if prev_chips < chips:
         print(f"NOT ENOUGH CHIPS for user {name}")
         return "broke"
