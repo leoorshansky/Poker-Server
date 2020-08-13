@@ -335,8 +335,7 @@ class Poker(Namespace):
 				send({"error": "not at table"})
 				return
 			chips = self.state["table"]["players_chips"][username]
-			seats = self.state["table"]["seats"]
-			seat = list(seats.keys())[list(seats.values()).index(username)]
+			seat = self.state["table"]["seats"].index(username)
 			if database.leave(username, chips) != "success":
 				send({"error": "something went wrong"})
 				return
