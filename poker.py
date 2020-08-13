@@ -131,6 +131,7 @@ class Poker(Namespace):
 		state["hand"]["hole_cards"] = {}
 		state["hand"]["pot"] = 0
 		state["hand"]["community_cards"] = []
+		state["hand"]["hands"] = {}
 		state["round"] = {}
 		state["round"]["chips_out"] = {}
 		state["round"]["street"] = ""
