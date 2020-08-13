@@ -99,6 +99,7 @@ class Poker(Namespace):
 		self.clear_state(True)
 
 	def notify_state(self, msg = "", reveal = False):
+		print(self.users)
 		for username in self.users:
 			state = self.state
 			state["message"] = msg
