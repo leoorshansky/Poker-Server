@@ -47,7 +47,7 @@ def replenish(name, qty):
 def join(name, chips):
     prev_chips = query_db("SELECT * from chips WHERE username = ?", (name,), True).get("qty")
     if prev_chips is None:
-        modify_db(f"INSERT INTO chips VALUES ('{name}', 10000, '{datetime.datetime.utcnow().strftime("%d %B %Y %X")}');")
+        modify_db(f"INSERT INTO chips VALUES ('{name}', 10000, '{datetime.datetime.utcnow().strftime('''%d %B %Y %X''')}');")
         prev_chips = 10000
     prev_chips = int(prev_chips)
     if prev_chips < chips:
