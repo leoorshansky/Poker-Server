@@ -1,6 +1,4 @@
-from flask import Flask, flash, render_template, redirect, url_for, session, request, send_from_directory, abort
-
-class ReverseProxied(object):
+class ReverseProxied():
 
     def __init__(self, app, script_name=None, scheme=None, server=None):
         self.app = app

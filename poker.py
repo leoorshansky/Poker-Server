@@ -8,20 +8,40 @@ import requests
 import itertools
 import datetime
 from collections import namedtuple
+from http.cookies import SimpleCookie
 import logging
-import flask as f
-from flask_socketio import SocketIO, Namespace, send, emit, join_room, leave_room
+import socketio
+from secrets import token_urlsafe, token_hex
+from sanic import Sanic
+from sanic.response import html, redirect, text, file
+from sanic_jwt import Initialize, Claim
+from sanic_session import Session
+from jinja2 import Environment, PackageLoader
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from apache import ReverseProxied
 import database
 
-app = f.Flask(__name__)
-app.wsgi_app = ReverseProxied(app.wsgi_app)
-app.secret_key = os.getenv("FLASK_SECRET", "test_secret")
+OPEN_LOGINS = {}
+JWT_SECRET = os.getenv("JWT_SECRET", token_hex(16))
 
-app.permanent_session_lifetime = datetime.timedelta(days = 3)
-socketio = SocketIO(app)
+
+app = Sanic(__name__)
+
+def authenticate(request):
+	nonce = request.args.get('nonce')
+	if not nonce or nonce not in OPEN_LOGINS:
+		return False
+	username = OPEN_LOGINS[nonce]
+	del OPEN_LOGINS[nonce]
+	return {'user_id':username}
+
+sanicjwt = Initialize(app, cookie_set=True, cookie_secure=True, expiration_delta = 3600 * 24, url_prefix='/poker/auth',
+	login_redirect_url="/poker/?login=fail", authenticate=authenticate, secret=JWT_SECRET)
+Session(app)
+sio = socketio.AsyncServer(async_mode='sanic')
+sio.attach(app)
+env = Environment(loader=PackageLoader('Poker-Server'))
 
 def all_equal(lst):
 	return len(set(lst)) == 1
@@ -87,7 +107,7 @@ def evaluate_hand(cards):
 		1 + 1 + 1 + 1 + 1: ('High card', sorted(ranks, reverse = True)),
 	}[sum(ranks.count(r) for r in ranks)]
 
-class Poker(Namespace):
+class Poker(socketio.AsyncNamespace):
 
 	def __init__(self, path, loop):
 		super().__init__(path)
@@ -98,14 +118,14 @@ class Poker(Namespace):
 		self.turn_time = 20
 		self.clear_state(True)
 
-	def notify_state(self, msg = "", reveal = False):
+	async def notify_state(self, msg = "", reveal = False):
 		for username in self.users:
 			state = self.state
 			state["message"] = msg
 			if not reveal:
 				state["hand"]["hole_cards"] = {username: self.state["hand"]["hole_cards"].get(username, "")}
 				state["hand"]["hands"] = {username: self.state["hand"]["hands"].get(username, "")}
-			emit('state', state, room=username)
+			await sio.emit('state', state, to=username)
 
 	async def timer (self, future, time, interval = 5):
 		time_left = time
@@ -115,7 +135,7 @@ class Poker(Namespace):
 				break
 			time_left -= interval
 			self.state["turn"]["timer"] = time_left
-			self.notify_state()
+			await self.notify_state()
 
 		if not future.done():
 			future.set_result("timeout")
@@ -284,10 +304,10 @@ class Poker(Namespace):
 					elif street == "river":
 						hand_running = False
 						await self.find_winner()
-						self.notify_state(True)
+						await self.notify_state(True)
 						self.queue.put(("loop_event", None))
 						continue
-					self.notify_state()
+					await self.notify_state()
 				action_player_name = positions[action_player]
 				result = await self.turn_timer(self.turn_time, action_player_name)
 				if result == "timeout":
@@ -298,67 +318,75 @@ class Poker(Namespace):
 					self.state["round"]["last_action"][action_player_name] = "fold"
 					del self.state["hand"]["positions"][action_player]
 				self.state["turn"]["timer"] = self.turn_time
-				self.notify_state()
+				await self.notify_state()
 			elif action == "join":
 				if len(self.state["table"]["players_chips"]) > 1:
 					print("detected >1 player at table")
 					self.state = await self.new_hand(self.state)
 					print("new hand made")
 					hand_running = True
-					self.notify_state()
+					await self.notify_state()
 					self.queue.put(("loop_event", None))
 
-	def on_connect(self):
-		username = f.session.get("email")
-		if username == None:
-			send({"error": "You are not authenticated"})
+	async def on_connect(self, sid, environ):
+		cookies = SimpleCookie()
+		cookies.load(environ['HTTP_COOKIE'])
+		if 'access_token' not in cookies:
+			await sio.send({"error": "re-authenticate"}, sid)
+			await sio.disconnect(sid)
 			return
-		join_room(username)
-		self.users.append(username)
-		send({"status": "connected"}, json=True)
+		token = cookies['access_token'].value
+		try:
+			username = jwt.decode(token, JWT_SECRET)['user_id']
+		except Exception:
+			await sio.send({"error": "re-authenticate"}, sid)
+			await sio.disconnect(sid)
+			return
+		async with sio.session(sid) as session:
+			session['username'] = username
 
-	def on_json(self, data):
+	async def on_json(self, sid, data):
 		action = data["action"]
-		username = f.session.get("email")
-		if username == None:
-			send({"error": "You are not authenticated"})
+		username = sio.get_session(sid).get("username")
+		if not username:
+			await sio.send({"error": "You are not authenticated"}, sid)
 			return
 		if action == "join":
 			amount = int(data["amount"])
 			if self.state["table"]["players_chips"].get(username):
-				send({"error": "already joined"})
+				await sio.send({"error": "already joined"}, sid)
 				return
 			if database.join(username, amount) != "success":
-				send({"error": "something went wrong"})
+				await sio.send({"error": "something went wrong"}, sid)
 				return
 			seat = int(data["seat"])
 			if self.state["table"]["seats"][seat] != "":
-				send({"error": "seat taken"})
+				await sio.send({"error": "seat taken"}, sid)
 				return
 			self.state["table"]["players_chips"][username] = amount
 			self.state["table"]["seats"][seat] = username
 			self.queue.put(("join", username))
-			send({"success": True})
-			self.notify_state("test")
+			await sio.send({"success": True}, sid)
+			await self.notify_state("test")
 		if action == "leave":
 			if not self.state["table"]["players_chips"].get(username):
-				send({"error": "not at table"})
+				await sio.send({"error": "not at table"}, sid)
 				return
 			chips = self.state["table"]["players_chips"][username]
 			seat = self.state["table"]["seats"].index(username)
 			if database.leave(username, chips) != "success":
-				send({"error": "something went wrong"})
+				await sio.send({"error": "something went wrong"}, sid)
 				return
 			del self.state["table"]["players_chips"][username]
 			del self.state["table"]["seats"][seat]
-			send({"success": True})
-			self.notify_state("test")
+			await sio.send({"success": True}, sid)
+			await self.notify_state("test")
 		if action == "state":
-			self.notify_state()
+			await self.notify_state()
 	
-	def on_disconnect(self):
-		username = f.session.get("email")
-		self.users.remove(username)
+	async def on_disconnect(self, sid):
+		username = await sio.get_session(sid).get("username")
+		self.users.remove(username) if username in self.users else 0
 
 		# try:
 			# data = json.loads(message)
@@ -433,57 +461,64 @@ class Poker(Namespace):
 		#     await self.unregister(websocket)
 
 @app.route("/poker/")
-def homepage():
-	f.session["permanent"] = True
-	if f.session.get("email"):
-		return f.redirect(f.url_for("lobby", _external=True, _scheme="https"), 303)
-	return f.render_template("homepage.html")
+async def homepage(request):
+	if request.args.get('login') == 'fail':
+		request.ctx.session["logged_in"] = 0
+	if int(request.ctx.session.get("logged_in", 0)):
+		return await redirect(app.url_for("lobby", _external=True, _scheme="https", _server="le0.tech"), status=303)
+	res = env.get_template('homepage.html').render()
+	return await html(res)
 
 @app.route("/poker/lobby/")
-def lobby():
-	f.session["permanent"] = True
-	if not f.session.get("email"):
-		return f.redirect(f.url_for("homepage", _external=True, _scheme="https"), 303)
-	return f.render_template("lobby.html", avatar=f.session["avatar"])
+@sanicjwt.protected()
+@sanicjwt.inject_user()
+async def lobby(request, user):
+	res = env.get_template('homepage.html').render(avatar=request.ctx.session.get("avatar"))
+	return await html(res)
 
 @app.route("/poker/login")
-def login():
-	f.session["permanent"] = True
+async def login(request):
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
 		'client_secret.json',
 		['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'])
-	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
+	flow.redirect_uri = app.url_for('token', _external=True, _scheme="https", _server='le0.tech')
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
-	f.session['state'] = state
-	return f.redirect(authorization_url, 303)
+	request.ctx.session['state'] = state
+	return await redirect(authorization_url, status=303)
 
 @app.route("/poker/logout")
-def logout():
-	f.session["permanent"] = True
-	if f.session.get("email"):
-		del f.session["email"]
-	return "done"
+@sanicjwt.protected()
+@sanicjwt.inject_user()
+async def logout(request, user):
+	if int(request.ctx.session.get("logged_in", 0)):
+		request.ctx.session["logged_in"] = 0
+	return await text("done")
 
 @app.route("/poker/token")
-def token():
-	state = f.session['state']
+async def token(request):
+	state = request.ctx.session.get('state')
+	if not state:
+		return await text("failed")
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
     	scopes=['openid','https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'], state=state)
-	flow.redirect_uri = f.url_for('token', _external=True, _scheme="https")
-	authorization_response = f.request.url.replace("http", "https")
+	flow.redirect_uri = app.url_for('token', _external=True, _scheme="https", _server='le0.tech')
+	authorization_response = request.url.replace("http", "https")
 	flow.fetch_token(authorization_response=authorization_response)
 	token = flow.credentials.id_token
 	decoded = jwt.decode(token, verify=False)
-	f.session['email'] = decoded["email"]
-	f.session['avatar'] = decoded["picture"]
-	return f.redirect(f.url_for('lobby', _external=True, _scheme="https"), 303)
+	request.ctx.session['logged_in'] = 1
+	email = decoded["email"]
+	nonce = token_urlsafe(8)
+	OPEN_LOGINS[nonce] = email
+	request.ctx.session['avatar'] = decoded["picture"]
+	res = env.get_template('auth.html').render(nonce=nonce)
+	return await html(res)
 
-async def run_app():
-	socketio.run(app, port=5000, debug=True)
+server = app.create_server(port=5000, debug=True, return_asyncio_server=True)
 
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
-socketio.on_namespace(game)
-loop.run_until_complete(asyncio.gather(run_app(), game.main()))
+sio.register_namespace(game)
+loop.run_until_complete(asyncio.gather(server, game.main()))
 loop.close()
