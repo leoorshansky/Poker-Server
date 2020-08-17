@@ -243,6 +243,7 @@ class Poker(Namespace):
 		hand_running = False
 		while True:
 			action, user = await self.queue.get()
+			print(user, action)
 			positions = self.state["hand"]["positions"]
 			if hand_running and action in ["check", "call", "raise", "fold", "timeout", "loop_event"]:
 				action_player = self.state["turn"]["action_player"]
@@ -299,13 +300,18 @@ class Poker(Namespace):
 				self.notify_state()
 			elif action == "join":
 				if len(self.state["table"]["players_chips"]) > 1:
+					print("detected >1 player at table")
 					self.state = await self.new_hand(self.state)
+					print("new hand made")
 					hand_running = True
 					self.notify_state()
 					self.queue.put(("loop_event", None))
 
 	def on_connect(self):
 		username = f.session.get("email")
+		if username == None:
+			send({"error": "You are not authenticated"})
+			return
 		join_room(username)
 		self.users.append(username)
 		send({"status": "connected"}, json=True)
@@ -313,6 +319,9 @@ class Poker(Namespace):
 	def on_json(self, data):
 		action = data["action"]
 		username = f.session.get("email")
+		if username == None:
+			send({"error": "You are not authenticated"})
+			return
 		if action == "join":
 			amount = int(data["amount"])
 			if self.state["table"]["players_chips"].get(username):
@@ -343,6 +352,8 @@ class Poker(Namespace):
 			del self.state["table"]["seats"][seat]
 			send({"success": True})
 			self.notify_state("test")
+		if action == "state":
+			self.notify_state()
 	
 	def on_disconnect(self):
 		username = f.session.get("email")
