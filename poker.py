@@ -240,6 +240,7 @@ class Poker(Namespace):
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
+		print('bruh')
 		hand_running = False
 		while True:
 			action, user = await self.queue.get()
