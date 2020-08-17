@@ -484,6 +484,5 @@ async def run_app():
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
 socketio.on_namespace(game)
-async def main():
-	await asyncio.gather(run_app(), game.main())
-asyncio.run(main())
+loop.run_until_complete(asyncio.gather(run_app(), game.main()))
+loop.close()
