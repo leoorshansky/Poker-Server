@@ -240,7 +240,6 @@ class Poker(Namespace):
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
-		print('bruh')
 		hand_running = False
 		while True:
 			action, user = await self.queue.get()
@@ -485,9 +484,6 @@ async def run_app():
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
 socketio.on_namespace(game)
-tasks = [
-	run_app(),
-	game.main()
-]
-asyncio.ensure_future(asyncio.wait(tasks))
-loop.run_forever()
+async def main():
+	await asyncio.gather(run_app(), game.main())
+asyncio.run(main())
