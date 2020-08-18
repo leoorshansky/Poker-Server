@@ -350,6 +350,7 @@ class Poker(socketio.AsyncNamespace):
 			await sio.disconnect(sid)
 			return
 		self.users = self.users.append(username)
+		print(self.users)
 		async with sio.session(sid) as session:
 			session['username'] = username
 
