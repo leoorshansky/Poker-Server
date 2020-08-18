@@ -126,7 +126,6 @@ class Poker(socketio.AsyncNamespace):
 
 	async def notify_state(self, msg = "", reveal = False):
 		for username in self.users:
-			print(username)
 			state = self.state
 			state["message"] = msg
 			if not reveal:
@@ -267,10 +266,10 @@ class Poker(socketio.AsyncNamespace):
 		self.state["hand"]["pot"] = 0
 
 	async def main(self):
-		print('bruh')
 		hand_running = False
 		while True:
 			action, user = await self.queue.get()
+			print('mega bruh')
 			print(user, action)
 			positions = self.state["hand"]["positions"]
 			if hand_running and action in ["check", "call", "raise", "fold", "timeout", "loop_event"]:
