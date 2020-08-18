@@ -41,7 +41,7 @@ sanicjwt = Initialize(app, cookie_set=True, cookie_secure=True, expiration_delta
 Session(app)
 sio = socketio.AsyncServer(async_mode='sanic')
 sio.attach(app)
-env = Environment(loader=PackageLoader('Poker-Server'))
+env = Environment(loader=PackageLoader('poker_server'))
 
 def all_equal(lst):
 	return len(set(lst)) == 1
