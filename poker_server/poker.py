@@ -465,16 +465,16 @@ async def homepage(request):
 	if request.args.get('login') == 'fail':
 		request.ctx.session["logged_in"] = 0
 	if int(request.ctx.session.get("logged_in", 0)):
-		return await redirect(app.url_for("lobby", _external=True, _scheme="https", _server="le0.tech"), status=303)
+		return redirect(app.url_for("lobby", _external=True, _scheme="https", _server="le0.tech"), status=303)
 	res = env.get_template('homepage.html').render()
-	return await html(res)
+	return html(res)
 
 @app.route("/poker/lobby/")
 @sanicjwt.protected()
 @sanicjwt.inject_user()
 async def lobby(request, user):
 	res = env.get_template('homepage.html').render(avatar=request.ctx.session.get("avatar"))
-	return await html(res)
+	return html(res)
 
 @app.route("/poker/login")
 async def login(request):
@@ -484,7 +484,7 @@ async def login(request):
 	flow.redirect_uri = app.url_for('token', _external=True, _scheme="https", _server='le0.tech')
 	authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
 	request.ctx.session['state'] = state
-	return await redirect(authorization_url, status=303)
+	return redirect(authorization_url, status=303)
 
 @app.route("/poker/logout")
 @sanicjwt.protected()
@@ -492,13 +492,13 @@ async def login(request):
 async def logout(request, user):
 	if int(request.ctx.session.get("logged_in", 0)):
 		request.ctx.session["logged_in"] = 0
-	return await text("done")
+	return text("done")
 
 @app.route("/poker/token")
 async def token(request):
 	state = request.ctx.session.get('state')
 	if not state:
-		return await text("failed")
+		return text("failed")
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     	'client_secret.json',
     	scopes=['openid','https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'], state=state)
@@ -513,7 +513,7 @@ async def token(request):
 	OPEN_LOGINS[nonce] = email
 	request.ctx.session['avatar'] = decoded["picture"]
 	res = env.get_template('auth.html').render(nonce=nonce)
-	return await html(res)
+	return html(res)
 
 server = app.create_server(host="0.0.0.0", port=5000, debug=True, return_asyncio_server=True)
 
