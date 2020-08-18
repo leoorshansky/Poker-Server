@@ -115,8 +115,8 @@ def evaluate_hand(cards):
 
 class Poker(socketio.AsyncNamespace):
 
-	def __init__(self, path, loop):
-		super().__init__(path)
+	def __init__(self, loop, path=None):
+		super().__init__(path) if path else super().__init__()
 		self.queue = asyncio.Queue(1)
 		self.users = []
 		self.cards = []
@@ -349,6 +349,7 @@ class Poker(socketio.AsyncNamespace):
 			await sio.send({"error": "re-authenticate"}, sid)
 			await sio.disconnect(sid)
 			return
+		print(self.users)
 		self.users = self.users.append(username)
 		print(self.users, username)
 		async with sio.session(sid) as session:
