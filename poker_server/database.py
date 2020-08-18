@@ -1,12 +1,12 @@
 import sqlite3, datetime, json, os
-from flask import g
 
 DATABASE = os.getenv("DB_PATH")
+db = None
 
 def get_db():
-    db = getattr(g, '_database', None)
+    global db
     if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
+        db = sqlite3.connect(DATABASE)
         db.row_factory = sqlite3.Row
     return db
 
@@ -65,6 +65,6 @@ def leave(name, chips):
     return "success"
 
 def close_connection(exception):
-    db = getattr(g, '_database', None)
+    global db
     if db is not None:
         db.close()
