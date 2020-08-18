@@ -1,7 +1,7 @@
 import sqlite3, datetime, json, os
 from flask import g
 
-DATABASE = os.path.join(os.getcwd(), "../poker.db")
+DATABASE = os.getenv("DB_PATH")
 
 def get_db():
     db = getattr(g, '_database', None)

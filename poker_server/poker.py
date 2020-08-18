@@ -16,7 +16,7 @@ from sanic import Sanic
 from sanic.response import html, redirect, text, file
 from sanic_jwt import Initialize, Claim
 from sanic_session import Session
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, FileSystemLoader
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from apache import ReverseProxied
@@ -41,7 +41,7 @@ sanicjwt = Initialize(app, cookie_set=True, cookie_secure=True, expiration_delta
 Session(app)
 sio = socketio.AsyncServer(async_mode='sanic')
 sio.attach(app)
-env = Environment(loader=PackageLoader('poker_server'))
+env = Environment(loader=FileSystemLoader(os.getenv("TEMPLATES_PATH")))
 
 def all_equal(lst):
 	return len(set(lst)) == 1
