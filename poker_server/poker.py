@@ -126,6 +126,7 @@ class Poker(socketio.AsyncNamespace):
 
 	async def notify_state(self, msg = "", reveal = False):
 		for username in self.users:
+			print(username)
 			state = self.state
 			state["message"] = msg
 			if not reveal:
