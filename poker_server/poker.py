@@ -515,7 +515,9 @@ async def token(request):
 	res = env.get_template('auth.html').render(nonce=nonce)
 	return await html(res)
 
-server = app.create_server(port=5000, debug=True, return_asyncio_server=True)
+#server = app.create_server(port=5000, debug=True, return_asyncio_server=True)
+
+app.run(port=5000, debug=True)
 
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
