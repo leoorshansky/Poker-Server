@@ -517,7 +517,7 @@ async def token(request):
 
 #server = app.create_server(port=5000, debug=True, return_asyncio_server=True)
 
-app.run(port=5000, debug=True)
+app.run(host="0.0.0.0", port=5000, debug=True)
 
 loop = asyncio.get_event_loop()
 game = Poker(None, loop)
