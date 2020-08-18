@@ -3,7 +3,7 @@
     <head>
         <script>
             const authenticate = async () => {
-                await fetch('/poker/auth?nonce={{nonce}}', {credentials: "same-origin"})
+                await fetch('/poker/auth?nonce={{nonce}}', {method: 'POST', credentials: "same-origin"})
                 window.location.replace(window.location.origin + "/poker/lobby")
             }
         </script>
