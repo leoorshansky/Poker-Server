@@ -117,7 +117,7 @@ class Poker(socketio.AsyncNamespace):
 
 	def __init__(self, loop, path=None):
 		super().__init__(path) if path else super().__init__()
-		self.queue = asyncio.Queue(1)
+		self.queue = asyncio.Queue(loop=loop)
 		self.users = []
 		self.cards = []
 		self.loop = loop
@@ -397,78 +397,6 @@ class Poker(socketio.AsyncNamespace):
 		session = await sio.get_session(sid)
 		username = session.get("username")
 		self.users.remove(username) if username in self.users else 0
-
-		# try:
-			# data = json.loads(message)
-			# action = data["action"]
-			# state = await self.get_state()
-			# positions = state["hand"]["positions"]
-			# action_player = state["turn"]["action_player"]
-			# action_player_name = positions[action_player]
-			# bet_size = state["turn"]["bet_size"]
-			# chips_out = state["round"]["chips_out"][action_player_name]
-			# if action_player_name == username:
-			# 	if action["name"] == "check":
-			# 		if bet_size == chips_out:
-			# 			reveal = False
-			# 			if state["round"]["first_to_act"] == (action_player + 1) % len(positions):
-			# 				state["round"]["over"] = 1
-			# 				if state["round"]["street"] == "river":
-			# 					reveal = True
-			# 			else:
-			# 				state["turn"]["action_player"] = (action_player + 1) % len(positions)
-			# 			state["round"]["last_action"][username] = "check"
-			# 			await self.set_state(state)
-			# 			await self.notify_state(reveal)
-			# 		else:
-			# 			await websocket.send("cannotcheck")
-			# 	elif action["name"] == "call":
-			# 		if bet_size != 0:
-			# 			reveal = False
-			# 			if state["round"]["last_bet_player"] == (action_player + 1) % len(positions):
-			# 				state["round"]["over"] = 1
-			# 				if state["round"]["street"] == "river":
-			# 					reveal = True
-			# 			else:
-			# 				state["turn"]["action_player"] = (action_player + 1) % len(positions)
-			# 			state["round"]["last_action"][username] = "call"
-			# 			chip_difference = bet_size - state["round"]["chips_out"][username]
-			# 			state["round"]["chips_out"][username] = bet_size
-			# 			state["table"]["players_chips"][username] -= chip_difference
-			# 			await self.set_state(state)
-			# 			await self.notify_state(reveal)
-			# 	elif action["name"] == "bet":
-			# 		bet = action["chips"] + bet_size
-			# 		if bet_size < bet:
-			# 			state["turn"]["bet_size"] = bet
-			# 			state["round"]["chips_out"][username] = bet
-			# 			state["table"]["players_chips"][username] -= action["chips"]
-			# 			state["round"]["last_action"][username] = f"bet {action['chips']}"
-			# 			state["round"]["last_bet_player"] = action_player
-			# 			state["turn"]["action_player"] = (action_player + 1) % len(positions)
-			# 			await self.set_state(state)
-			# 			await self.notify_state()
-			# 		else:
-			# 			await websocket.send("cannotbet")
-			# 	elif action["name"] == "fold":
-			# 		reveal = False
-			# 		if state["turn"]["last_bet_player"] == (action_player + 1) % len(positions):
-			# 			state["round"]["over"] = 1
-			# 		else:
-			# 			state["turn"]["action_player"] = (action_player + 1) % len(positions)
-			# 		state["turn"]["action_player"] -= 1
-			# 		state["round"]["last_action"][username] = "fold"
-			# 		del state["hand"]["positions"][action_player]
-			# 		await self.set_state(state)
-			# 		await self.notify_state(reveal)
-			# 	else:
-			# 		continue
-		# except Exception as e:
-		#     print(e)
-		# finally:
-		#     requests.get(f"http://localhost:5000/leave/{username}")
-		#     await self.notify_state()
-		#     await self.unregister(websocket)
 
 @app.route("/poker/")
 async def homepage(request):
