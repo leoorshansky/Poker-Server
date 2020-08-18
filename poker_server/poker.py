@@ -479,7 +479,7 @@ async def homepage(request):
 @sanicjwt.protected(redirect_on_fail=True)
 @sanicjwt.inject_user()
 async def lobby(request, user):
-	res = env.get_template('homepage.html').render(avatar=request.ctx.session.get("avatar"))
+	res = env.get_template('lobby.html').render(avatar=request.ctx.session.get("avatar"))
 	return html(res)
 
 @app.route("/poker/login")
