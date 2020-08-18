@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            const authenticate = async () => {
+                await fetch('/poker/auth?nonce={{nonce}}', {credentials: "same-origin"})
+                window.location.replace(window.location.origin + "/poker/lobby")
+            }
+        </script>
+    </head>
+    <body onload="authenticate()">
+        <div style="margin:auto"><h1>LOGGING IN...</h1></div>
+    </body>
+</html>
