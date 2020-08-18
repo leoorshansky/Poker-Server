@@ -349,7 +349,7 @@ class Poker(socketio.AsyncNamespace):
 			await sio.send({"error": "re-authenticate"}, sid)
 			await sio.disconnect(sid)
 			return
-		self.users.append(username)
+		self.users.append(username) if username not in self.users else 0
 		async with sio.session(sid) as session:
 			session['username'] = username
 
