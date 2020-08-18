@@ -38,9 +38,9 @@ def authenticate(request):
 
 def retreive_user(request, payload):
 	if payload:
-        return payload.get('user_id', None)
-    else:
-        return None
+		return payload.get('user_id', None)
+	else:
+		return None
 
 sanicjwt = Initialize(app, cookie_set=True, cookie_secure=True, expiration_delta = 3600 * 24, url_prefix='/poker/auth',
 	login_redirect_url="/poker/?login=fail", authenticate=authenticate, retreive_user=retreive_user, secret=JWT_SECRET)
@@ -506,8 +506,8 @@ async def token(request):
 	if not state:
 		return text("failed")
 	flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-    	'client_secret.json',
-    	scopes=['openid','https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'], state=state)
+		'client_secret.json',
+		scopes=['openid','https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'], state=state)
 	flow.redirect_uri = app.url_for('token', _external=True, _scheme="https", _server='le0.tech')
 	authorization_response = request.url.replace("http", "https")
 	flow.fetch_token(authorization_response=authorization_response)
