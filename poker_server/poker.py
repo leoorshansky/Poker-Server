@@ -353,7 +353,8 @@ class Poker(socketio.AsyncNamespace):
 
 	async def on_json(self, sid, data):
 		action = data["action"]
-		username = sio.get_session(sid).get("username")
+		session = await sio.get_session(sid)
+		username = session.get("username")
 		if not username:
 			await sio.send({"error": "You are not authenticated"}, sid)
 			return
@@ -391,7 +392,8 @@ class Poker(socketio.AsyncNamespace):
 			await self.notify_state()
 	
 	async def on_disconnect(self, sid):
-		username = await sio.get_session(sid).get("username")
+		session = await sio.get_session(sid)
+		username = session.get("username")
 		self.users.remove(username) if username in self.users else 0
 
 		# try:
