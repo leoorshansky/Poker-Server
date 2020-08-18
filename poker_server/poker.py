@@ -530,7 +530,7 @@ async def token(request):
 server = app.create_server(host="0.0.0.0", port=5000, debug=True, return_asyncio_server=True)
 
 loop = asyncio.get_event_loop()
-game = Poker(None, loop)
+game = Poker(loop)
 sio.register_namespace(game)
 task1 = asyncio.ensure_future(server, loop=loop)
 task2 = asyncio.ensure_future(game.main(), loop=loop)
