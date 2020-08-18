@@ -350,6 +350,7 @@ class Poker(socketio.AsyncNamespace):
 			await sio.disconnect(sid)
 			return
 		self.users.append(username) if username not in self.users else 0
+		sio.enter_room(sid, username)
 		async with sio.session(sid) as session:
 			session['username'] = username
 
