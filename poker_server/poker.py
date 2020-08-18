@@ -36,8 +36,14 @@ def authenticate(request):
 	del OPEN_LOGINS[nonce]
 	return {'user_id':username}
 
+def retreive_user(request, payload):
+	if payload:
+        return payload.get('user_id', None)
+    else:
+        return None
+
 sanicjwt = Initialize(app, cookie_set=True, cookie_secure=True, expiration_delta = 3600 * 24, url_prefix='/poker/auth',
-	login_redirect_url="/poker/?login=fail", authenticate=authenticate, secret=JWT_SECRET)
+	login_redirect_url="/poker/?login=fail", authenticate=authenticate, retreive_user=retreive_user, secret=JWT_SECRET)
 Session(app)
 sio = socketio.AsyncServer(async_mode='sanic')
 sio.attach(app)
