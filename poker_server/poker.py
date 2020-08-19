@@ -121,11 +121,12 @@ class Poker(socketio.AsyncNamespace):
 		self.users = []
 		self.cards = []
 		self.loop = loop
-		self.turn_time = 40
+		self.turn_time = 10
 		self.big_blind = 100
 		self.clear_state(True)
 
 	async def notify_state(self, msg = "", reveal = False):
+		print(self.state["hand"]["hole_cards"])
 		for username in self.users:
 			state = self.state
 			state["message"] = msg
@@ -291,6 +292,8 @@ class Poker(socketio.AsyncNamespace):
 						self.state["table"]["players_chips"][positions[0]] += self.state["hand"]["pot"]
 						self.state["hand"]["pot"] = 0
 						hand_running = False
+						await self.queue.put(("loop_event", None))
+						continue
 					elif street == "preflop":
 						cards = [self.cards.pop() for x in range(3)]
 						self.state["hand"]["community_cards"].extend(cards)
@@ -325,7 +328,7 @@ class Poker(socketio.AsyncNamespace):
 				self.state["turn"]["timer"] = self.turn_time
 				await self.queue.put(("loop_event", None))
 				await self.notify_state()
-			elif action == "join":
+			else:
 				if len(self.state["table"]["players_chips"]) > 1:
 					self.state = await self.new_hand(self.state)
 					hand_running = True
