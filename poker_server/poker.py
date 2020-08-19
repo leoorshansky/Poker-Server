@@ -122,6 +122,7 @@ class Poker(socketio.AsyncNamespace):
 		self.cards = []
 		self.loop = loop
 		self.turn_time = 20
+		self.big_blind = 100
 		self.clear_state(True)
 
 	async def notify_state(self, msg = "", reveal = False):
@@ -152,8 +153,10 @@ class Poker(socketio.AsyncNamespace):
 			state["table"] = {}
 			state["table"]["players_chips"] = {}
 			state["table"]["seats"] = [""] * 9
+			state["table"]["big_blind"] = self.big_blind
 		state["hand"] = {}
 		state["hand"]["positions"] = []
+		state["hand"]["starting_positions"] = []
 		state["hand"]["hole_cards"] = {}
 		state["hand"]["pot"] = 0
 		state["hand"]["community_cards"] = []
