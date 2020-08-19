@@ -374,7 +374,6 @@ class Poker(socketio.AsyncNamespace):
 			self.state["table"]["seats"][seat] = username
 			await self.queue.put(("join", username))
 			await sio.send({"success": True}, sid)
-			await self.notify_state("test")
 		if action == "leave":
 			if not self.state["table"]["players_chips"].get(username):
 				await sio.send({"error": "not at table"}, sid)
