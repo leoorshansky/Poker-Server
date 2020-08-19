@@ -127,7 +127,6 @@ class Poker(socketio.AsyncNamespace):
 		self.clear_state(True)
 
 	async def notify_state(self, msg = "", reveal = False):
-		print(self.state["hand"]["hole_cards"])
 		for username in self.users:
 			state = deepcopy(self.state)
 			state["message"] = msg
@@ -276,6 +275,7 @@ class Poker(socketio.AsyncNamespace):
 			if hand_running and action == "loop_event":
 				action_player = self.state["turn"]["action_player"]
 				if self.state["round"]["over"]:
+					print("detected round over")
 					street = self.state["round"]["street"]
 					for player in self.state["hand"]["starting_positions"]:
 						chips_out = self.state["round"]["chips_out"][player]
@@ -329,6 +329,7 @@ class Poker(socketio.AsyncNamespace):
 				self.state["turn"]["timer"] = self.turn_time
 				await self.queue.put(("loop_event", None))
 				await self.notify_state()
+				print("turn ended")
 			else:
 				if len(self.state["table"]["players_chips"]) > 1:
 					self.state = await self.new_hand(deepcopy(self.state))
