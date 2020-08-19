@@ -184,9 +184,12 @@ class Poker(socketio.AsyncNamespace):
 	async def turn_timer(self, time, username):
 		loop = self.loop
 		done = loop.create_future()
-		loop.create_task(self.wait_for_turn(done, username))
-		loop.create_task(self.timer(done, time))
-		return await done
+		task1 = loop.create_task(self.wait_for_turn(done, username))
+		task2 = loop.create_task(self.timer(done, time))
+		result = await done
+		task1.cancel()
+		task2.cancel()
+		return result
 
 	async def new_hand (self, state):
 		seats = state["table"]["seats"]
