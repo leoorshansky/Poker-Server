@@ -7,6 +7,7 @@ import jwt
 import requests
 import itertools
 import datetime
+from copy import deepcopy
 from collections import namedtuple
 from http.cookies import SimpleCookie
 import logging
@@ -128,7 +129,7 @@ class Poker(socketio.AsyncNamespace):
 	async def notify_state(self, msg = "", reveal = False):
 		print(self.state["hand"]["hole_cards"])
 		for username in self.users:
-			state = self.state
+			state = deepcopy(self.state)
 			state["message"] = msg
 			if not reveal:
 				state["hand"]["hole_cards"] = {username: self.state["hand"]["hole_cards"].get(username, "")}
@@ -330,7 +331,7 @@ class Poker(socketio.AsyncNamespace):
 				await self.notify_state()
 			else:
 				if len(self.state["table"]["players_chips"]) > 1:
-					self.state = await self.new_hand(self.state)
+					self.state = await self.new_hand(deepcopy(self.state))
 					hand_running = True
 					await self.notify_state()
 					await self.queue.put(("loop_event", None))
