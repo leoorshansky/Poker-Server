@@ -312,7 +312,7 @@ class Poker(socketio.AsyncNamespace):
 						hand_running = False
 						await self.find_winner()
 						await self.notify_state(True)
-						self.queue.put(("loop_event", None))
+						await self.queue.put(("loop_event", None))
 						continue
 					await self.notify_state()
 				action_player_name = positions[action_player]
@@ -328,12 +328,10 @@ class Poker(socketio.AsyncNamespace):
 				await self.notify_state()
 			elif action == "join":
 				if len(self.state["table"]["players_chips"]) > 1:
-					print("detected >1 player at table")
 					self.state = await self.new_hand(self.state)
-					print("new hand made")
 					hand_running = True
 					await self.notify_state()
-					self.queue.put(("loop_event", None))
+					await self.queue.put(("loop_event", None))
 
 	async def on_connect(self, sid, environ):
 		cookies = SimpleCookie()
