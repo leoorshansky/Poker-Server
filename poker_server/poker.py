@@ -335,6 +335,7 @@ class Poker(socketio.AsyncNamespace):
 					self.queue.put(("loop_event", None))
 
 	async def on_connect(self, sid, environ):
+		self.queue.put("bruh")
 		cookies = SimpleCookie()
 		cookies.load(environ['HTTP_COOKIE'])
 		if 'access_token' not in cookies:
