@@ -121,7 +121,7 @@ class Poker(socketio.AsyncNamespace):
 		self.users = []
 		self.cards = []
 		self.loop = loop
-		self.turn_time = 20
+		self.turn_time = 40
 		self.big_blind = 100
 		self.clear_state(True)
 
@@ -176,11 +176,9 @@ class Poker(socketio.AsyncNamespace):
 
 	async def wait_for_turn (self, future, username):
 		while not future.done():
-			await self.queue.get()
-			if self.state["hand"]["positions"][self.state["turn"]["action_player"]] != username:
-				break
-		if not future.done():
-			future.set_result("taken")
+			action, user = await self.queue.get()
+			if action == "move" and user == username:
+				return future.set_result("taken")
 
 	async def turn_timer(self, time, username):
 		loop = self.loop
@@ -273,7 +271,7 @@ class Poker(socketio.AsyncNamespace):
 		while True:
 			action, user = await self.queue.get()
 			positions = self.state["hand"]["positions"]
-			if hand_running and action in ["check", "call", "raise", "fold", "timeout", "loop_event"]:
+			if hand_running and action == "loop_event":
 				action_player = self.state["turn"]["action_player"]
 				if self.state["round"]["over"]:
 					street = self.state["round"]["street"]
@@ -325,6 +323,7 @@ class Poker(socketio.AsyncNamespace):
 					self.state["round"]["last_action"][action_player_name] = "fold"
 					del self.state["hand"]["positions"][action_player]
 				self.state["turn"]["timer"] = self.turn_time
+				await self.queue.put(("loop_event", None))
 				await self.notify_state()
 			elif action == "join":
 				if len(self.state["table"]["players_chips"]) > 1:
