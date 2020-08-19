@@ -180,6 +180,7 @@ class Poker(socketio.AsyncNamespace):
 			action, user = await self.queue.get()
 			if action == "move" and user == username:
 				return future.set_result("taken")
+		print('test')
 
 	async def turn_timer(self, time, username):
 		loop = self.loop
