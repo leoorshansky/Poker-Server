@@ -267,7 +267,7 @@ class Poker(socketio.AsyncNamespace):
 
 	async def main(self):
 		hand_running = False
-		while hand_running:
+		while True:
 			action, user = await self.queue.get()
 			print('mega bruh')
 			print(user, action)
@@ -335,7 +335,6 @@ class Poker(socketio.AsyncNamespace):
 					self.queue.put(("loop_event", None))
 
 	async def on_connect(self, sid, environ):
-		self.queue.put("bruh")
 		cookies = SimpleCookie()
 		cookies.load(environ['HTTP_COOKIE'])
 		if 'access_token' not in cookies:
@@ -375,7 +374,7 @@ class Poker(socketio.AsyncNamespace):
 				return
 			self.state["table"]["players_chips"][username] = amount
 			self.state["table"]["seats"][seat] = username
-			self.queue.put(("join", username))
+			await self.queue.put(("join", username))
 			await sio.send({"success": True}, sid)
 			await self.notify_state("test")
 		if action == "leave":
@@ -461,10 +460,4 @@ game = Poker(loop)
 sio.register_namespace(game)
 asyncio.ensure_future(game.main(), loop=loop)
 asyncio.ensure_future(server, loop=loop)
-async def queue_test():
-	print(game.queue)
-	while True:
-		item = await game.queue.get()
-		print(item)
-asyncio.ensure_future(queue_test(), loop=loop)
 loop.run_forever()
