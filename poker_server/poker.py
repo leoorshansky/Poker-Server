@@ -267,7 +267,7 @@ class Poker(socketio.AsyncNamespace):
 
 	async def main(self):
 		hand_running = False
-		while True:
+		while hand_running:
 			action, user = await self.queue.get()
 			print('mega bruh')
 			print(user, action)
@@ -460,5 +460,10 @@ game = Poker(loop)
 sio.register_namespace(game)
 asyncio.ensure_future(game.main(), loop=loop)
 asyncio.ensure_future(server, loop=loop)
+async def queue_test():
+	print(game.queue)
+	while True:
+		item = await game.queue.get()
+		print(item)
+asyncio.ensure_future(queue_test(), loop=loop)
 loop.run_forever()
-loop.close()
