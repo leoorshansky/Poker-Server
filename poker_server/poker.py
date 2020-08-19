@@ -269,8 +269,6 @@ class Poker(socketio.AsyncNamespace):
 		hand_running = False
 		while True:
 			action, user = await self.queue.get()
-			print('mega bruh')
-			print(user, action)
 			positions = self.state["hand"]["positions"]
 			if hand_running and action in ["check", "call", "raise", "fold", "timeout", "loop_event"]:
 				action_player = self.state["turn"]["action_player"]
