@@ -180,7 +180,6 @@ class Poker(socketio.AsyncNamespace):
 			action, user = await self.queue.get()
 			if action == "move" and user == username:
 				return future.set_result("taken")
-		print('test')
 
 	async def turn_timer(self, time, username):
 		loop = self.loop
@@ -271,6 +270,7 @@ class Poker(socketio.AsyncNamespace):
 	async def main(self):
 		hand_running = False
 		while True:
+			print(self.queue.size())
 			action, user = await self.queue.get()
 			positions = self.state["hand"]["positions"]
 			if hand_running and action == "loop_event":
@@ -330,7 +330,7 @@ class Poker(socketio.AsyncNamespace):
 				self.state["turn"]["timer"] = self.turn_time
 				await self.queue.put(("loop_event", None))
 				await self.notify_state()
-				print("turn ended")
+				print("turn ended", self.queue.size())
 			else:
 				if len(self.state["table"]["players_chips"]) > 1:
 					self.state = await self.new_hand(deepcopy(self.state))
