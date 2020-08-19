@@ -270,7 +270,7 @@ class Poker(socketio.AsyncNamespace):
 	async def main(self):
 		hand_running = False
 		while True:
-			print(self.queue.size())
+			print(self.queue.qsize())
 			action, user = await self.queue.get()
 			positions = self.state["hand"]["positions"]
 			if hand_running and action == "loop_event":
@@ -330,7 +330,7 @@ class Poker(socketio.AsyncNamespace):
 				self.state["turn"]["timer"] = self.turn_time
 				await self.queue.put(("loop_event", None))
 				await self.notify_state()
-				print("turn ended", self.queue.size())
+				print("turn ended", self.queue.qsize())
 			else:
 				if len(self.state["table"]["players_chips"]) > 1:
 					self.state = await self.new_hand(deepcopy(self.state))
