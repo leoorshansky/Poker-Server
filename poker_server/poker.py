@@ -220,8 +220,8 @@ class Poker(socketio.AsyncNamespace):
 					positions.insert(pos + 1, yeets[x - i])
 				i += 1
 
-		state["hand"]["positions"] = positions
-		state["hand"]["starting_positions"] = positions
+		state["hand"]["positions"] = deepcopy(positions)
+		state["hand"]["starting_positions"] = deepcopy(positions)
 
 		deck = [card + suit for card in ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"] for suit in ["S", "H", "C", "D"]]
 		random.shuffle(deck)
@@ -362,7 +362,8 @@ class Poker(socketio.AsyncNamespace):
 		session = await sio.get_session(sid)
 		username = session.get("username")
 		if not username:
-			await sio.send({"error": "You are not authenticated"}, sid)
+			await sio.send({"error": "re-authenticate"}, sid)
+			await sio.disconnect(sid)
 			return
 		if action == "join":
 			amount = int(data["amount"])
