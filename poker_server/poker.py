@@ -177,7 +177,7 @@ class Poker(socketio.AsyncNamespace):
 	async def wait_for_turn (self, future, username):
 		while not future.done():
 			action, user = await self.queue.get()
-			print('lmaooooo')
+			print('got move from queue')
 			if action == "move" and user == username:
 				return future.set_result("taken")
 
@@ -429,6 +429,7 @@ class Poker(socketio.AsyncNamespace):
 				self.state["round"]["over"] = 1
 			else:
 				self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+			print("putting in queue")
 			self.queue.put(("move", username))
 		if action == "raise":
 			action_player = self.state["turn"]["action_player"]
