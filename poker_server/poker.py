@@ -177,7 +177,6 @@ class Poker(socketio.AsyncNamespace):
 	async def wait_for_turn (self, future, username):
 		while not future.done():
 			action, user = await self.queue.get()
-			print('lmaoooooooooooooooo')
 			if action == "move" and user == username:
 				return future.set_result("taken")
 
@@ -406,7 +405,6 @@ class Poker(socketio.AsyncNamespace):
 			self.state["round"]["last_action"][username] = action
 			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
 				self.state["round"]["over"] = 1
-				return
 			else:
 				self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
 			self.queue.put(("move", username))
@@ -428,7 +426,6 @@ class Poker(socketio.AsyncNamespace):
 			self.state["round"]["chips_out"][username] = self.state["turn"]["bet_size"]
 			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
 				self.state["round"]["over"] = 1
-				return
 			else:
 				self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
 			self.queue.put(("move", username))
@@ -461,7 +458,6 @@ class Poker(socketio.AsyncNamespace):
 			self.state["round"]["last_action"][username] = action
 			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
 				self.state["round"]["over"] = 1
-				return
 			else:
 				if self.state["turn"]["action_player"] == len(positions) - 1:
 					self.state["turn"]["action_player"] = 0
