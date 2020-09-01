@@ -167,7 +167,6 @@ class Poker(socketio.AsyncNamespace):
 		state["round"]["street"] = ""
 		state["round"]["last_action"] = {}
 		state["round"]["last_bet_player"] = 0
-		state["round"]["first_to_act"] = 0
 		state["round"]["over"] = 0
 		state["turn"] = {}
 		state["turn"]["timer"] = self.turn_time
@@ -237,8 +236,8 @@ class Poker(socketio.AsyncNamespace):
 			state["round"]["chips_out"][positions[i]] = blind
 			state["round"]["last_action"][positions[i]] = action
 
-		state["round"]["first_to_act"] = 2
-		state["round"]["last_bet_player"] = 2
+		state["turn"]["action_player"] = 2 if len(positions) > 2 else 0
+		state["round"]["last_bet_player"] = 1
 		state["turn"]["bet_size"] = 2 * small_blind
 
 		for player in positions:
@@ -284,7 +283,6 @@ class Poker(socketio.AsyncNamespace):
 						self.state["hand"]["pot"] += chips_out
 						self.state["round"]["chips_out"][player] = 0
 						self.state["round"]["last_action"][player] = ""
-					self.state["round"]["first_to_act"] = 0
 					self.state["round"]["last_bet_player"] = 0
 					self.state["round"]["over"] = 0
 					self.state["turn"]["bet_size"] = 0
@@ -325,7 +323,8 @@ class Poker(socketio.AsyncNamespace):
 					if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
 						self.state["round"]["over"] = 1
 					else:
-						self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+						if self.state["turn"]["action_player"] == len(positions) - 1:
+							self.state["turn"]["action_player"] = 0
 					self.state["round"]["last_action"][action_player_name] = "fold"
 					del self.state["hand"]["positions"][action_player]
 				self.state["turn"]["timer"] = self.turn_time
@@ -394,6 +393,79 @@ class Poker(socketio.AsyncNamespace):
 			del self.state["table"]["seats"][seat]
 			await sio.send({"success": True}, sid)
 			await self.notify_state("test")
+		if action == "check":
+			action_player = self.state["turn"]["action_player"]
+			positions = self.state["hand"]["positions"]
+			if self.state["hand"]["positions"][action_player] != username:
+				await sio.send({f"error": "Not your turn"}, sid)
+				return
+			if self.state["turn"]["bet_size"] > self.state["round"]["chips_out"].get(username, -1):
+				await sio.send({f"error": "Invalid action '{action}'"}, sid)
+				return
+			self.state["round"]["last_action"][username] = action
+			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
+				self.state["round"]["over"] = 1
+				return
+			else:
+				self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+			self.queue.put(("move", username))
+		if action == "call":
+			action_player = self.state["turn"]["action_player"]
+			positions = self.state["hand"]["positions"]
+			if self.state["hand"]["positions"][action_player] != username:
+				await sio.send({f"error": "Not your turn"}, sid)
+				return
+			if self.state["turn"]["bet_size"] <= self.state["round"]["chips_out"].get(username, 1e99):
+				await sio.send({f"error": "Invalid action '{action}'"}, sid)
+				return
+			chips_needed = self.state["turn"]["bet_size"] - self.state["round"]["chips_out"][username]
+			if self.state["table"]["players_chips"][username] < chips_needed:
+				await sio.send({f"error": "Not enough chips"}, sid)
+				return
+			self.state["round"]["last_action"][username] = action
+			self.state["table"]["players_chips"][username] -= chips_needed
+			self.state["round"]["chips_out"][username] = self.state["turn"]["bet_size"]
+			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
+				self.state["round"]["over"] = 1
+				return
+			else:
+				self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+			self.queue.put(("move", username))
+		if action == "raise":
+			action_player = self.state["turn"]["action_player"]
+			positions = self.state["hand"]["positions"]
+			amount = data["amount"]
+			if self.state["hand"]["positions"][action_player] != username:
+				await sio.send({f"error": "Not your turn"}, sid)
+				return
+			if self.state["turn"]["bet_size"] >= amount:
+				await sio.send({f"error": "Invalid raise amount '{action}'"}, sid)
+				return
+			chips_needed = amount - self.state["round"]["chips_out"][username]
+			if self.state["table"]["players_chips"][username] < chips_needed:
+				await sio.send({f"error": "Not enough chips"}, sid)
+				return
+			self.state["round"]["last_action"][username] = action
+			self.state["table"]["players_chips"][username] -= chips_needed
+			self.state["round"]["chips_out"][username] = self.state["turn"]["bet_size"] = amount
+			self.state["turn"]["action_player"] = (action_player + 1) % len(positions) - 1
+			self.state["round"]["last_bet_player"] = action_player
+			self.queue.put(("move", username))
+		if action == "fold":
+			action_player = self.state["turn"]["action_player"]
+			positions = self.state["hand"]["positions"]
+			if self.state["hand"]["positions"][action_player] != username:
+				await sio.send({f"error": "Not your turn"}, sid)
+				return
+			self.state["round"]["last_action"][username] = action
+			if self.state["round"]["last_bet_player"] == (action_player + 1) % len(positions) or len(positions) == 2:
+				self.state["round"]["over"] = 1
+				return
+			else:
+				if self.state["turn"]["action_player"] == len(positions) - 1:
+					self.state["turn"]["action_player"] = 0
+				del self.state["hand"]["positions"][action_player]
+			self.queue.put(("move", username))
 		if action == "state":
 			await self.notify_state()
 	
