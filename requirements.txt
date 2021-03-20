@@ -1,5 +1,5 @@
 requests==2.18.4
-Jinja2==2.10
+Jinja2==2.11.3
 sanic==20.6.3
 google_auth_oauthlib==0.4.1
 python-socketio==4.6.0
