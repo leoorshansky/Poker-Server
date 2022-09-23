@@ -3,7 +3,7 @@ Jinja2==2.10
 sanic==20.6.3
 google_auth_oauthlib==0.4.1
 python-socketio==4.6.0
-protobuf==3.13.0
+protobuf==3.18.3
 PyJWT==1.7.1
 sanic_jwt==1.5.0
 sanic_session==0.7.3
